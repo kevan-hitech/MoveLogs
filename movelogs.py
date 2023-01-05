@@ -4,11 +4,15 @@ import time
 import subprocess
 
 
+# Credentials need to be stored in a profile in order for AWS CLI to access the bucket 
+
+
 def checktime(lastcheck,timenow):
     """Check if it is the correct time to iniiate script"""
 
     if lastcheck is None:
         lastcheck = timenow
+
     lastcheck_ = lastcheck.split(" ")
     lc_date = lastcheck_[0].split("-")
     lc_hour = lastcheck_[1]
@@ -17,7 +21,7 @@ def checktime(lastcheck,timenow):
     delta = lastcheck_dt + timedelta(days=INTERVAL)
     delta = delta.strftime("%Y-%m-%d %H")
 
-    message = "Now: [%s]\nNext Check: %s" % (timenow, delta)
+    message = "Next Check: %s" % (delta)
     print(message)
 
     if timenow == delta:
@@ -63,7 +67,7 @@ def upload(log_path,bucket_path):
     restart = command(restart_command)
 
     # Upload log 
-    upload_command = "aws s3 cp %s/%s %s/%s --profile wasabi --endpoint-url=https://s3.wasabisys.com" % (BASE_PATH,new_path, bucket_path,new_path)
+    upload_command = "aws s3 mv %s/%s %s/%s --profile aws" % (BASE_PATH,new_path, bucket_path,new_path)
     upload = command(upload_command)
 
     return new_path
@@ -75,30 +79,38 @@ DEBUG = True
 
 # Path of logs
 BASE_PATH = "/var/log"
-BUCKET_PATH_BRK = "s3://meraki-syslogs-test/Logs/Brooklyn"
-BUCKET_PATH_DWN = "s3://meraki-syslogs-test/Logs/Downtown"
+BUCKET_PATH_BRK = "s3://meraki-syslog-serverdump/Brooklyn"
+BUCKET_PATH_DWN = "s3://meraki-syslog-serverdump/Downtown"
 
 # How often logs will be uploaded 
 INTERVAL = 1
+
+if DEBUG:
+    INTERVAL = 1
 
 # Initial interval checks
 lastchecked = None
 
 if DEBUG:
-    lastchecked = "2022-10-30 20"
-    INTERVAL = 1
+    lastchecked = None
+
+
 
 
 if __name__ == "__main__":
 
     while True:
+        if lastchecked is None:
+            lastchecked = (datetime.now()).strftime("%Y-%m-%d %H")
+
         # Get the time right now ex: 2022-10-31 15 ()
         currently = (datetime.now()).strftime("%Y-%m-%d %H")
-        print(currently)
+        print((datetime.now()).strftime("%Y-%m-%d %H:%M:%S"))
         
         # If time matches - initiate
         if checktime(lastchecked,currently):
             upload("meraki_BRK.log",BUCKET_PATH_BRK)
+            time.sleep(1)
             upload("meraki_DWN.log",BUCKET_PATH_DWN)
 
             lastchecked = (datetime.now()).strftime("%Y-%m-%d %H")
@@ -108,5 +120,3 @@ if __name__ == "__main__":
         # Check again in 60 seconds 
         else:
             time.sleep(60)
-
-
