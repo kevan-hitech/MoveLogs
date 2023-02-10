@@ -4,9 +4,6 @@ import time
 import subprocess
 
 
-# Credentials need to be stored in a profile in order for AWS CLI to access the bucket 
-
-
 def checktime(lastcheck,timenow):
     """Check if it is the correct time to iniiate script"""
 
